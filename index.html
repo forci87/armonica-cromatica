@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cromática Pro • Lógica de Escalas y Afinador</title>
+    <title>Cromática Pro • Escalas y Arpegios</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
@@ -15,25 +15,299 @@
         .draw-nat { background: rgba(239, 68, 68, 0.1); color: #f87171; }
         .draw-slide { background: rgba(249, 115, 22, 0.1); color: #fb923c; }
         .scale-highlight { border: 2px solid #fbbf24 !important; background: rgba(251, 191, 36, 0.15) !important; }
+        .arpeggio-highlight { border: 2px solid #a855f7 !important; background: rgba(168, 85, 247, 0.25) !important; }
         .active-note { background: #fbbf24 !important; color: black !important; transform: scale(1.1); z-index: 50; box-shadow: 0 0 25px #fbbf24; }
         .mic-on { color: #fbbf24; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         select { background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 12px; width: 100%; font-weight: 600; }
         .theory-badge { background: rgba(251, 191, 36, 0.1); color: #fbbf24; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; border: 1px solid rgba(251, 191, 36, 0.3); }
+        .arpeggio-badge { background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div class="max-w-5xl mx-auto">
         <header class="text-center mb-8">
             <h1 class="text-4xl font-black italic tracking-tighter uppercase">CROMÁTICA <span class="text-yellow-400">PRO</span></h1>
-            <p class="text-zinc-500 text-[10px] font-bold tracking-[0.3em] uppercase mt-2">Afinador + Lógica de Escalas Relativas</p>
+            <p class="text-zinc-500 text-[10px] font-bold tracking-[0.3em] uppercase mt-2">Afinador + Lógica de Arpegios</p>
         </header>
 
         <div class="bg-zinc-900/40 p-6 rounded-3xl border border-white/5 mb-6">
-            
             <div class="flex flex-col items-center mb-6 border-b border-white/5 pb-6">
                 <div id="detected-note-name" class="text-6xl font-black text-white h-16 mb-2 opacity-10 transition-all duration-300">--</div>
                 <button id="mic-btn" onclick="toggleMic()" class="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3 rounded-xl font-black flex items-center gap-3 transition-all text-xs uppercase tracking-widest">
+                    <svg id="mic-icon" width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                    <span id="mic-text">Activar Microfono</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="text-[10px] text-zinc-500 font-black ml-1 uppercase tracking-widest">Tónica</label>
+                    <select id="tonic-select" onchange="updateScale()" class="mt-2 text-sm">
+                        <option value="C">C (Do)</option><option value="C#">C#</option><option value="D">D</option>
+                        <option value="D#">D#</option><option value="E">E</option><option value="F">F</option>
+                        <option value="F#">F#</option><option value="G">G</option><option value="G#">G#</option>
+                        <option value="A">A</option><option value="A#">A#</option><option value="B">B</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-zinc-500 font-black ml-1 uppercase tracking-widest">Escala</label>
+                    <select id="scale-select" onchange="updateScale()" class="mt-2 text-sm">
+                        <option value="major">Mayor (Jonio)</option>
+                        <option value="minor">Menor Nat. (Eolio)</option>
+                        <option value="harmonicMinor">Menor Armónica</option>
+                        <option value="majorPentatonic">Penta Mayor</option>
+                        <option value="minorPentatonic">Penta Menor</option>
+                        <option value="blues">Blues</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-zinc-500 font-black ml-1 uppercase tracking-widest">Arpegio (Opcional)</label>
+                    <select id="arpeggio-select" onchange="updateScale()" class="mt-2 text-sm">
+                        <option value="none">Ninguno (Escala)</option>
+                        <option value="maj7">Maj7 (1-3-5-7)</option>
+                        <option value="m7">min7 (1-b3-5-b7)</option>
+                        <option value="7">Dominante (1-3-5-b7)</option>
+                        <option value="dim7">Disminuido (1-b3-b5-bb7)</option>
+                    </select>
+                </div>
+                <div class="flex flex-col justify-end">
+                    <div id="relative-info" class="mb-2 text-xs"></div>
+                    <div class="flex flex-wrap gap-2" id="theory-badges"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto pb-8">
+            <div class="harmonica-body shadow-2xl" id="harmonica-grid"></div>
+        </div>
+
+        <div class="text-center mt-4">
+            <div id="scale-notes-display" class="text-yellow-400 font-bold mb-6 h-6 text-sm italic tracking-[0.2em]"></div>
+            <div class="flex flex-col items-center gap-3">
+                <button id="play-scale-btn" onclick="playBlockScale()" class="bg-yellow-400 text-black px-12 py-4 rounded-2xl font-black uppercase shadow-lg shadow-yellow-400/20 active:scale-95 transition-all text-sm tracking-widest">Reproducir Selección</button>
+                <button id="stop-scale-btn" onclick="stopScale()" class="bg-red-500 text-white px-12 py-4 rounded-2xl font-black uppercase hidden text-sm tracking-widest">Detener</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const scales = { 
+            major: [0, 2, 4, 5, 7, 9, 11], 
+            minor: [0, 2, 3, 5, 7, 8, 10],
+            harmonicMinor: [0, 2, 3, 5, 7, 8, 11], 
+            majorPentatonic: [0, 2, 4, 7, 9], 
+            minorPentatonic: [0, 3, 5, 7, 10], 
+            blues: [0, 3, 5, 6, 7, 10] 
+        };
+        const arpeggios = {
+            maj7: [0, 4, 7, 11],
+            m7: [0, 3, 7, 10],
+            7: [0, 4, 7, 10],
+            dim7: [0, 3, 6, 9]
+        };
+
+        const layout = [
+            {h:1,bs:"C#",b:"C",d:"D",ds:"D#"}, {h:2,bs:"F",b:"E",d:"F",ds:"F#"}, {h:3,bs:"G#",b:"G",d:"A",ds:"A#"}, {h:4,bs:"C#",b:"C",d:"B",ds:"C"},
+            {h:5,bs:"C#",b:"C",d:"D",ds:"D#"}, {h:6,bs:"F",b:"E",d:"F",ds:"F#"}, {h:7,bs:"G#",b:"G",d:"A",ds:"A#"}, {h:8,bs:"C#",b:"C",d:"B",ds:"C"},
+            {h:9,bs:"C#",b:"C",d:"D",ds:"D#"}, {h:10,bs:"F",b:"E",d:"F",ds:"F#"}, {h:11,bs:"G#",b:"G",d:"A",ds:"A#"}, {h:12,bs:"C#",b:"C",d:"B",ds:"C"}
+        ];
+        const freqs = { "C":261.6,"C#":277.2,"D":293.7,"D#":311.1,"E":329.6,"F":349.2,"F#":370.0,"G":392.0,"G#":415.3,"A":440.0,"A#":466.2,"B":493.9 };
+
+        let audioCtx, analyser, dataArray, stream, isListening = false, isPlayingScale = false;
+
+        function render() {
+            const grid = document.getElementById('harmonica-grid');
+            grid.innerHTML = ''; // Limpiar previo
+            layout.forEach((item, i) => {
+                const col = document.createElement('div');
+                col.className = 'flex flex-col gap-2';
+                col.innerHTML = `
+                    <div class="note-card blow-slide" data-n="${item.bs}" data-h="${i}">${item.bs}</div>
+                    <div class="note-card blow-nat" data-n="${item.b}" data-h="${i}">${item.b}</div>
+                    <div class="text-center py-2 text-[10px] font-black text-zinc-700">${item.h}</div>
+                    <div class="note-card draw-nat" data-n="${item.d}" data-h="${i}">${item.d}</div>
+                    <div class="note-card draw-slide" data-n="${item.ds}" data-h="${i}">${item.ds}</div>
+                `;
+                grid.appendChild(col);
+            });
+            document.querySelectorAll('.note-card').forEach(card => {
+                card.onclick = () => tap(card, card.dataset.n, card.dataset.h);
+            });
+            updateScale();
+        }
+
+        function tap(el, n, i) {
+            if(!el) return;
+            el.classList.add('active-note');
+            setTimeout(() => el.classList.remove('active-note'), 350);
+            if(!audioCtx) audioCtx = new AudioContext();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.value = freqs[n] * Math.pow(2, Math.floor(i/4));
+            osc.type = 'triangle';
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+        }
+
+        function updateScale() {
+            const t = document.getElementById('tonic-select').value;
+            const sType = document.getElementById('scale-select').value;
+            const aType = document.getElementById('arpeggio-select').value;
+            const relInfo = document.getElementById('relative-info');
+            const badges = document.getElementById('theory-badges');
+            
+            document.querySelectorAll('.note-card').forEach(e => {
+                e.classList.remove('scale-highlight', 'arpeggio-highlight');
+            });
+            
+            let badgesHTML = `<div class="theory-badge">${t} ${sType}</div>`;
+            
+            // Lógica de Relativos
+            let relativeText = "";
+            if(sType === 'major') {
+                const relIdx = (noteStrings.indexOf(t) + 9) % 12;
+                relativeText = `Relativa Menor: <span class="text-white font-bold">${noteStrings[relIdx]}m</span>`;
+            } else if (sType === 'minor') {
+                const relIdx = (noteStrings.indexOf(t) + 3) % 12;
+                relativeText = `Relativa Mayor: <span class="text-white font-bold">${noteStrings[relIdx]}</span>`;
+            } else {
+                relativeText = `<span class="text-zinc-600">Composición libre</span>`;
+            }
+            relInfo.innerHTML = relativeText;
+
+            // Notas de la Escala
+            const sNotes = scales[sType].map(v => noteStrings[(noteStrings.indexOf(t)+v)%12]);
+            
+            // Notas del Arpegio
+            let aNotes = [];
+            if (aType !== 'none') {
+                aNotes = arpeggios[aType].map(v => noteStrings[(noteStrings.indexOf(t)+v)%12]);
+                badgesHTML += `<div class="theory-badge arpeggio-badge">Arp. ${aType.toUpperCase()}</div>`;
+            }
+
+            badges.innerHTML = badgesHTML;
+            
+            // Mostrar texto de notas (Priorizar arpegio si está activo)
+            const displayNotes = aType !== 'none' ? aNotes : sNotes;
+            document.getElementById('scale-notes-display').innerText = displayNotes.join(" • ");
+            
+            // Resaltado visual en armónica
+            document.querySelectorAll('.note-card').forEach(e => {
+                if(aType !== 'none' && aNotes.includes(e.dataset.n)) {
+                    e.classList.add('arpeggio-highlight');
+                } else if(sNotes.includes(e.dataset.n)) {
+                    e.classList.add('scale-highlight');
+                }
+            });
+        }
+
+        async function toggleMic() {
+            if (isListening) {
+                isListening = false;
+                if(stream) stream.getTracks().forEach(t => t.stop());
+                document.getElementById('mic-text').innerText = "Activar Escucha";
+                document.getElementById('mic-icon').classList.remove('mic-on');
+                document.getElementById('detected-note-name').innerText = "--";
+                document.getElementById('detected-note-name').style.opacity = "0.1";
+                return;
+            }
+            try {
+                if(!audioCtx) audioCtx = new AudioContext();
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const source = audioCtx.createMediaStreamSource(stream);
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+                source.connect(analyser);
+                dataArray = new Float32Array(analyser.frequencyBinCount);
+                isListening = true;
+                document.getElementById('mic-text').innerText = "Detener Escucha";
+                document.getElementById('mic-icon').classList.add('mic-on');
+                document.getElementById('detected-note-name').style.opacity = "1";
+                updatePitch();
+            } catch (err) { alert("Micrófono no accesible."); }
+        }
+
+        function updatePitch() {
+            if (!isListening) return;
+            analyser.getFloatTimeDomainData(dataArray);
+            let freq = autoCorrelate(dataArray, audioCtx.sampleRate);
+            if (freq !== -1) {
+                let noteNum = 12 * (Math.log(freq / 440) / Math.log(2)) + 69;
+                let noteName = noteStrings[Math.round(noteNum) % 12];
+                document.getElementById('detected-note-name').innerText = noteName;
+                
+                document.querySelectorAll('.note-card').forEach(card => {
+                    if (card.dataset.n === noteName) {
+                        card.classList.add('active-note');
+                        setTimeout(() => card.classList.remove('active-note'), 150);
+                    }
+                });
+            }
+            requestAnimationFrame(updatePitch);
+        }
+
+        function autoCorrelate(buffer, sampleRate) {
+            let SIZE = buffer.length; let rms = 0;
+            for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
+            if (Math.sqrt(rms / SIZE) < 0.015) return -1;
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buffer[i]) < thres) { r1 = i; break; }
+            for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buffer[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+            buffer = buffer.slice(r1, r2); SIZE = buffer.length;
+            let c = new Array(SIZE).fill(0);
+            for (let i = 0; i < SIZE; i++) for (let j = 0; j < SIZE - i; j++) c[i] = c[i] + buffer[j] * buffer[j + i];
+            let d = 0; while (c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < SIZE; i++) if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+            return sampleRate / maxpos;
+        }
+
+        async function playBlockScale() {
+            if(isPlayingScale) return;
+            isPlayingScale = true;
+            document.getElementById('play-scale-btn').style.display = 'none';
+            document.getElementById('stop-scale-btn').style.display = 'block';
+
+            const tonic = document.getElementById('tonic-select').value;
+            const sType = document.getElementById('scale-select').value;
+            const aType = document.getElementById('arpeggio-select').value;
+            
+            // Elegir qué reproducir (Escala o Arpegio)
+            const intervals = aType !== 'none' ? arpeggios[aType] : scales[sType];
+            const fullSequence = [];
+            
+            for (let j = 0; j < intervals.length; j++) {
+                const noteName = noteStrings[(noteStrings.indexOf(tonic) + intervals[j]) % 12];
+                // Buscamos preferentemente en la octava central (agujeros 5-8)
+                let cell = Array.from(document.querySelectorAll('.note-card')).find(c => {
+                    const h = parseInt(c.dataset.h);
+                    return c.dataset.n === noteName && h >= 4 && h < 8; 
+                });
+                if (cell) fullSequence.push({ el: cell, note: noteName, idx: cell.dataset.h });
+            }
+
+            for(let item of fullSequence) {
+                if(!isPlayingScale) break;
+                tap(item.el, item.note, item.idx);
+                await new Promise(r => setTimeout(r, 600)); // Un poco más lento para arpegios
+            }
+            stopScale();
+        }
+
+        function stopScale() {
+            isPlayingScale = false;
+            document.getElementById('play-scale-btn').style.display = 'block';
+            document.getElementById('stop-scale-btn').style.display = 'none';
+        }
+
+        render();
+    </script>
+</body>
+</html>
                     <svg id="mic-icon" width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                     <span id="mic-text">Activar Microfono</span>
                 </button>
