@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cromática Pro • Fraseo Musical</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #09090b; color: white; touch-action: manipulation; -webkit-tap-highlight-color: transparent; min-height: 100vh; }
+        .main-container { width: 100%; max-width: 1280px; margin: 0 auto; padding: 1rem; }
+        .is-mobile .harmonica-viewport { overflow-x: auto; padding: 20px 10px; scroll-snap-type: x mandatory; display: flex; }
+        .is-desktop .harmonica-viewport { display: flex; justify-content: center; padding: 20px; }
+        .harmonica-body { background: linear-gradient(180deg, #1f2937 0%, #111827 100%); border: 4px solid #374151; border-radius: 24px; display: flex; gap: 12px; padding: 15px; width: max-content; }
+        .note-card { transition: all 0.1s; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 55px; width: 52px; font-weight: 700; font-size: 13px; }
+        .blow-slide { background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; }
+        .blow-natural { background: rgba(59, 130, 246, 0.1); border: 1px solid #60a5fa; color: #60a5fa; }
+        .draw-natural { background: rgba(239, 68, 68, 0.1); border: 1px solid #f87171; color: #f87171; }
+        .draw-slide { background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; }
+        .scale-highlight { box-shadow: 0 0 15px #fbbf24; border: 2px solid #fbbf24 !important; background: rgba(251, 191, 36, 0.3) !important; color: #fff !important; transform: scale(1.05); z-index: 10; }
+        .playing-now { background: white !important; color: black !important; transform: scale(1.1); }
+        select { background: #18181b; border: 1px solid #3f3f46; color: white; padding: 10px; border-radius: 12px; font-size: 16px; width: 100%; }
+        .play-btn { background: #fbbf24; color: #000; padding: 16px 32px; border-radius: 50px; font-weight: 800; transition: all 0.2s; display: none; margin: 20px auto; }
+        .stop-active { background: #ef4444; color: white; }
+    </style>
+</head>
+<body class="p-2">
+    <div class="main-container" id="app-shell">
+        <header class="text-center py-6">
+            <h1 class="text-3xl font-black tracking-tighter italic uppercase">Cromática <span class="text-yellow-400">Pro</span></h1>
+            <div class="grid grid-cols-2 md:flex md:justify-center gap-3 mt-6 max-w-md mx-auto">
+                <div>
+                    <label class="text-[10px] text-zinc-500 font-bold ml-1 uppercase">Tónica</label>
+                    <select id="tonic-select" onchange="updateScale()">
+                        <option value="C">C (Do)</option><option value="C#">C#</option>
+                        <option value="D">D (Re)</option><option value="D#">D#</option>
+                        <option value="E">E (Mi)</option><option value="F">F (Fa)</option>
+                        <option value="F#">F#</option><option value="G">G (Sol)</option>
+                        <option value="G#">G#</option><option value="A">A (La)</option>
+                        <option value="A#">A#</option><option value="B">B (Si)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-zinc-500 font-bold ml-1 uppercase">Escala</label>
+                    <select id="scale-select" onchange="updateScale()">
+                        <option value="none">Ninguna</option>
+                        <option value="major">Mayor</option>
+                        <option value="minor">Menor Nat.</option>
+                        <option value="harmonicMinor">Menor Arm.</option>
+                        <option value="majorPentatonic">Penta Mayor</option>
+                        <option value="minorPentatonic">Penta Menor</option>
+                        <option value="blues">Blues</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <div class="harmonica-viewport">
+            <div class="harmonica-body" id="harmonica-grid"></div>
+        </div>
+
+        <div class="text-center mt-6">
+            <div id="scale-info" class="text-yellow-400 font-bold mb-4 min-h-[1.5rem] text-sm md:text-lg italic tracking-wide"></div>
+            <button id="action-btn" class="play-btn shadow-xl flex items-center justify-center gap-2 mx-auto" onclick="handleAction()">
+                <span id="btn-icon"><svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                <span id="btn-text">REPRODUCIR ESCALA</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const scales = { major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10], harmonicMinor:[0,2,3,5,7,8,11], majorPentatonic:[0,2,4,7,9], minorPentatonic:[0,3,5,7,10], blues:[0,3,5,6,7,10] };
+        const layout = [ {h:1,bs:"C#",b:"C",d:"D",ds:"D#"}, {h:2,bs:"F",b:"E",d:"F",ds:"F#"}, {h:3,bs:"G#",b:"G",d:"A",ds:"A#"}, {h:4,bs:"C#",b:"C",d:"B",ds:"C"}, {h:5,bs:"C#",b:"C",d:"D",ds:"D#"}, {h:6,bs:"F",b:"E",d:"F",ds:"F#"}, {h:7,bs:"G#",b:"G",d:"A",ds:"A#"}, {h:8,bs:"C#",b:"C",d:"B",ds:"C"}, {h:9,bs:"C#",b:"C",d:"D",ds:"D#"}, {h:10,bs:"F",b:"E",d:"F",ds:"F#"}, {h:11,bs:"G#",b:"G",d:"A",ds:"A#"}, {h:12,bs:"C#",b:"C",d:"B",ds:"C"} ];
+        const freqs = { "C":261.6,"C#":277.2,"D":293.7,"D#":311.1,"E":329.6,"F":349.2,"F#":370.0,"G":392.0,"G#":415.3,"A":440.0,"A#":466.2,"B":493.9 };
+
+        let isPlaying = false;
+        let stopPlayback = false;
+
+        function checkDevice() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+            document.getElementById('app-shell').classList.add(isMobile ? 'is-mobile' : 'is-desktop');
+        }
+
+        function play(note, hole, dur = 0.5) {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.frequency.value = freqs[note] * Math.pow(2, Math.floor(hole/4));
+            osc.type = 'triangle';
+            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+            osc.connect(g); g.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + dur);
+        }
+
+        function render() {
+            const grid = document.getElementById('harmonica-grid');
+            layout.forEach((item, i) => {
+                const col = document.createElement('div');
+                col.className = 'flex flex-col gap-1';
+                col.innerHTML = `
+                    <div class="note-card blow-slide" data-n="${item.bs}" data-h="${i}" onclick="tap(this,'${item.bs}',${i})">${item.bs}</div>
+                    <div class="note-card blow-natural" data-n="${item.b}" data-h="${i}" onclick="tap(this,'${item.b}',${i})">${item.b}</div>
+                    <div class="text-center py-1 text-[10px] font-bold text-zinc-600">${item.h}</div>
+                    <div class="note-card draw-natural" data-n="${item.d}" data-h="${i}" onclick="tap(this,'${item.d}',${i})">${item.d}</div>
+                    <div class="note-card draw-slide" data-n="${item.ds}" data-h="${i}" onclick="tap(this,'${item.ds}',${i})">${item.ds}</div>
+                `;
+                grid.appendChild(col);
+            });
+        }
+
+        function tap(el, n, i) {
+            el.classList.add('playing-now');
+            setTimeout(() => el.classList.remove('playing-now'), 250);
+            play(n, i);
+        }
+
+        function updateScale() {
+            const t = document.getElementById('tonic-select').value;
+            const s = document.getElementById('scale-select').value;
+            const info = document.getElementById('scale-info');
+            const btn = document.getElementById('action-btn');
+            document.querySelectorAll('.note-card').forEach(e => e.classList.remove('scale-highlight'));
+            if(s === 'none') { info.innerText = ''; btn.style.display = 'none'; return; }
+            const sNotes = scales[s].map(v => notes[(notes.indexOf(t)+v)%12]);
+            info.innerText = `Escala: ${sNotes.join(' - ')}`;
+            btn.style.display = 'flex';
+            setBtnState('play');
+            document.querySelectorAll('.note-card').forEach(e => {
+                if(sNotes.includes(e.dataset.n)) e.classList.add('scale-highlight');
+            });
+        }
+
+        function setBtnState(state) {
+            const btn = document.getElementById('action-btn');
+            const icon = document.getElementById('btn-icon');
+            const txt = document.getElementById('btn-text');
+            if(state === 'stop') {
+                isPlaying = true;
+                btn.classList.add('stop-active');
+                txt.innerText = "DETENER";
+                icon.innerHTML = `<svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>`;
+            } else {
+                isPlaying = false;
+                stopPlayback = false;
+                btn.classList.remove('stop-active');
+                txt.innerText = "REPRODUCIR ESCALA";
+                icon.innerHTML = `<svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
+            }
+        }
+
+        function handleAction() {
+            if(isPlaying) stopPlayback = true;
+            else playFullScale();
+        }
+
+        async function playFullScale() {
+            setBtnState('stop');
+            const high = Array.from(document.querySelectorAll('.scale-highlight')).sort((a,b) => a.dataset.h - b.dataset.h);
+            
+            // Lógica de división: 4 notas, pausa, 4 notas...
+            const groupSize = 4; 
+            
+            for(let i = 0; i < high.length; i++) {
+                if(stopPlayback) break;
+                
+                const e = high[i];
+                tap(e, e.dataset.n, parseInt(e.dataset.h));
+                
+                // Si llegamos al final de un grupo, hacemos una pausa más larga
+                if ((i + 1) % groupSize === 0 && i !== high.length - 1) {
+                    await new Promise(r => setTimeout(r, 900)); // Pausa entre grupos
+                } else {
+                    await new Promise(r => setTimeout(r, 450)); // Tiempo entre notas
+                }
+            }
+            setBtnState('play');
+        }
+
+        checkDevice();
+        render();
+    </script>
+</body>
+</html>
